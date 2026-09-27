@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Margin Tic-Tac-Toe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gochi+Hand&family=Figtree:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --paper: #f7f8f3;
+    --grid: #d6e2ee;
+    --margin: #e8a0a0;
+    --graphite: #2f3440;
+    --ink-x: #2f3440;
+    --ink-o: #c2412d;
+    --muted: #6b7384;
+    --chip: #ffffff;
+    --chip-line: #cfd6e0;
+    --focus: #3a6fb0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --paper: #182029;
+      --grid: #243140;
+      --margin: #7a3a3a;
+      --graphite: #e4e7ec;
+      --ink-x: #e4e7ec;
+      --ink-o: #ff8a6b;
+      --muted: #93a0b2;
+      --chip: #1f2934;
+      --chip-line: #34404f;
+      --focus: #7fb0ea;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --paper: #182029;
+    --grid: #243140;
+    --margin: #7a3a3a;
+    --graphite: #e4e7ec;
+    --ink-x: #e4e7ec;
+    --ink-o: #ff8a6b;
+    --muted: #93a0b2;
+    --chip: #1f2934;
+    --chip-line: #34404f;
+    --focus: #7fb0ea;
+  }
+
+  html, body { min-height: 100%; }
+  body {
+    background-color: var(--paper);
+    background-image:
+      linear-gradient(to right, transparent 47px, var(--margin) 47px, var(--margin) 49px, transparent 49px),
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 100% 100%, 24px 24px, 24px 24px;
+    color: var(--graphite);
+    font-family: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px;
+    padding-inline: 16px;
+    padding-block: 32px 48px;
+  }
+  .wrap {
+    max-width: 420px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  header { display: flex; flex-direction: column; gap: 2px; }
+  h1 {
+    font-family: "Gochi Hand", "Comic Sans MS", cursive;
+    font-weight: 400;
+    font-size: 44px;
+    line-height: 1;
+    margin: 0;
+    text-wrap: balance;
+  }
+  h1 .o { color: var(--ink-o); }
+  .sub { color: var(--muted); margin: 0; }
+
+  .modes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border: 1px solid var(--chip-line);
+    border-radius: 10px;
+    background: var(--chip);
+    padding: 3px;
+    gap: 3px;
+  }
+  .modes button {
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    background: transparent;
+    border: 0;
+    border-radius: 7px;
+    padding: 8px 4px;
+    cursor: pointer;
+  }
+  .modes button[aria-pressed="true"] {
+    background: var(--graphite);
+    color: var(--paper);
+  }
+
+  .status {
+    font-family: "Gochi Hand", "Comic Sans MS", cursive;
+    font-size: 28px;
+    min-height: 34px;
+    text-align: center;
+    margin: 0;
+  }
+  .status .x { color: var(--ink-x); }
+  .status .o { color: var(--ink-o); }
+
+  .board {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    aspect-ratio: 1;
+  }
+  .board svg.frame, .board svg.strike {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  .frame path {
+    fill: none;
+    stroke: var(--graphite);
+    stroke-width: 3.2;
+    stroke-linecap: round;
+  }
+  .cells {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+  }
+  .cell {
+    background: transparent;
+    border: 0;
+    padding: 14%;
+    cursor: pointer;
+    border-radius: 8px;
+  }
+  .cell:disabled { cursor: default; }
+  .cell:focus-visible, .modes button:focus-visible, .actions button:focus-visible {
+    outline: 2px dashed var(--focus);
+    outline-offset: 2px;
+  }
+  .cell:not(:disabled):hover .ghost { opacity: .18; }
+  .cell svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .cell path {
+    fill: none;
+    stroke-width: 9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .mark-x path { stroke: var(--ink-x); }
+  .mark-o path { stroke: var(--ink-o); }
+  .ghost { opacity: 0; transition: opacity .15s; }
+  .draw path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: draw .22s ease-out forwards;
+  }
+  .draw path:nth-child(2) { animation-delay: .16s; }
+  .mark-o.draw path { animation-duration: .38s; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  .dim { opacity: .3; transition: opacity .4s; }
+
+  .strike path {
+    fill: none;
+    stroke: var(--graphite);
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: draw .4s .15s ease-out forwards;
+  }
+
+  .score {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .tally {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .tally .label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .tally .marks { min-height: 30px; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+  .tally .marks svg { height: 30px; width: auto; }
+  .tally .marks path { fill: none; stroke: var(--graphite); stroke-width: 2.4; stroke-linecap: round; }
+  .tally.o .marks path { stroke: var(--ink-o); }
+  .tally .zero { font-family: "Gochi Hand", cursive; font-size: 24px; line-height: 30px; color: var(--muted); }
+  .tally .num { font-variant-numeric: tabular-nums; font-size: 12px; color: var(--muted); }
+
+  .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .actions button {
+    font: inherit;
+    font-weight: 600;
+    border-radius: 999px;
+    padding: 10px 20px;
+    cursor: pointer;
+    border: 1.5px solid var(--graphite);
+  }
+  #newRound { background: var(--graphite); color: var(--paper); }
+  #resetScore { background: transparent; color: var(--graphite); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .draw path, .strike path { animation: none; stroke-dashoffset: 0; }
+  }
+  @media (max-width: 380px) {
+    body { background-size: 100% 100%, 24px 24px, 24px 24px; }
+    h1 { font-size: 38px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Tic-Tac-T<span class="o">o</span>e</h1>
+    <p class="sub">Three in a row wins. X is graphite, O is red ink.</p>
+  </header>
+
+  <div class="modes" role="group" aria-label="Opponent">
+    <button id="mode-two" data-mode="two" aria-pressed="false">Two players</button>
+    <button id="mode-easy" data-mode="easy" aria-pressed="false">vs CPU · easy</button>
+    <button id="mode-hard" data-mode="hard" aria-pressed="true">vs CPU · perfect</button>
+  </div>
+
+  <p class="status" id="status" aria-live="polite"></p>
+
+  <div class="board">
+    <svg class="frame" viewBox="0 0 300 300" aria-hidden="true">
+      <path d="M101 10 C 99 90, 103 190, 99 290"/>
+      <path d="M200 12 C 202 110, 198 200, 201 288"/>
+      <path d="M10 99 C 110 102, 190 97, 290 101"/>
+      <path d="M12 201 C 100 198, 200 203, 288 199"/>
+    </svg>
+    <div class="cells" id="cells"></div>
+    <svg class="strike" id="strike" viewBox="0 0 300 300" aria-hidden="true"></svg>
+  </div>
+
+  <div class="score">
+    <div class="tally x"><span class="label">X wins</span><div class="marks" id="tX"></div><span class="num" id="nX"></span></div>
+    <div class="tally d"><span class="label">Draws</span><div class="marks" id="tD"></div><span class="num" id="nD"></span></div>
+    <div class="tally o"><span class="label">O wins</span><div class="marks" id="tO"></div><span class="num" id="nO"></span></div>
+  </div>
+
+  <div class="actions">
+    <button id="newRound">New round</button>
+    <button id="resetScore">Reset score</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  const LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  const X_SVG = '<path pathLength="1" d="M22 20 C 45 44, 60 60, 80 82"/><path pathLength="1" d="M80 18 C 58 42, 40 60, 20 80"/>';
+  const O_SVG = '<path pathLength="1" d="M52 16 C 24 14, 14 40, 17 56 C 20 76, 38 86, 54 84 C 74 82, 86 64, 84 46 C 82 28, 66 16, 46 19"/>';
+
+  let S;
+  let cpuTimer = null;
+  const $ = id => document.getElementById(id);
+  const cellsEl = $('cells');
+
+  function fresh(prev) {
+    return {
+      board: Array(9).fill(null),
+      turn: prev ? (prev.starter === 'X' ? 'O' : 'X') : 'X',
+      starter: prev ? (prev.starter === 'X' ? 'O' : 'X') : 'X',
+      mode: prev ? prev.mode : 'hard',
+      score: prev ? prev.score : { X: 0, O: 0, D: 0 },
+      result: null,
+      lastMove: -1
+    };
+  }
+
+  function outcome(b) {
+    for (const l of LINES) {
+      if (b[l[0]] && b[l[0]] === b[l[1]] && b[l[0]] === b[l[2]]) return { p: b[l[0]], line: l };
+    }
+    return b.every(Boolean) ? { p: 'D' } : null;
+  }
+
+  function minimax(b, player, depth) {
+    const r = outcome(b);
+    if (r) return r.p === 'O' ? 10 - depth : r.p === 'X' ? depth - 10 : 0;
+    let best = player === 'O' ? -Infinity : Infinity;
+    for (let i = 0; i < 9; i++) {
+      if (b[i]) continue;
+      b[i] = player;
+      const s = minimax(b, player === 'O' ? 'X' : 'O', depth + 1);
+      b[i] = null;
+      best = player === 'O' ? Math.max(best, s) : Math.min(best, s);
+    }
+    return best;
+  }
+
+  function cpuMove() {
+    const b = S.board.slice();
+    const open = b.map((v, i) => v ? -1 : i).filter(i => i >= 0);
+    if (S.mode === 'easy' && Math.random() < 0.55) return open[Math.floor(Math.random() * open.length)];
+    let bestScore = -Infinity, choices = [];
+    for (const i of open) {
+      b[i] = 'O';
+      const s = minimax(b, 'X', 1);
+      b[i] = null;
+      if (s > bestScore) { bestScore = s; choices = [i]; }
+      else if (s === bestScore) choices.push(i);
+    }
+    return choices[Math.floor(Math.random() * choices.length)];
+  }
+
+  const cpuTurn = () => S.mode !== 'two' && S.turn === 'O' && !S.result;
+
+  function play(i) {
+    if (S.result || S.board[i]) return;
+    S.board[i] = S.turn;
+    S.lastMove = i;
+    S.result = outcome(S.board);
+    if (S.result) S.score[S.result.p]++;
+    else S.turn = S.turn === 'X' ? 'O' : 'X';
+    render(true);
+    scheduleCpu();
+  }
+
+  function scheduleCpu() {
+    clearTimeout(cpuTimer);
+    if (cpuTurn()) cpuTimer = setTimeout(() => play(cpuMove()), 480);
+  }
+
+  function markSvg(p, animate) {
+    return '<svg viewBox="0 0 100 100" class="mark-' + p.toLowerCase() + (animate ? ' draw' : '') + '" aria-hidden="true">' +
+      (p === 'X' ? X_SVG : O_SVG) + '</svg>';
+  }
+
+  function tallySvg(n) {
+    if (!n) return '<span class="zero">–</span>';
+    const groups = [];
+    const shown = Math.min(n, 20);
+    for (let g = 0; g < shown; g += 5) {
+      const k = Math.min(5, shown - g);
+      let d = '';
+      for (let j = 0; j < Math.min(k, 4); j++) {
+        const x = 5 + j * 7;
+        d += 'M' + x + ' 4 L' + (x + (j % 2 ? 1 : -1)) + ' 26 ';
+      }
+      if (k === 5) d += 'M1 22 L32 8';
+      groups.push('<svg viewBox="0 0 34 30"><path d="' + d + '"/></svg>');
+    }
+    return groups.join('');
+  }
+
+  function render(animateLast) {
+    const names = S.mode === 'two' ? { X: 'X', O: 'O' } : { X: 'You', O: 'CPU' };
+    cellsEl.innerHTML = '';
+    S.board.forEach((v, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'cell';
+      btn.id = 'cell-' + i;
+      const row = Math.floor(i / 3) + 1, col = i % 3 + 1;
+      btn.setAttribute('aria-label', 'Row ' + row + ', column ' + col + (v ? ', ' + v : ', empty'));
+      if (v) {
+        btn.innerHTML = markSvg(v, animateLast && i === S.lastMove);
+        if (S.result && S.result.line && !S.result.line.includes(i)) btn.classList.add('dim');
+      } else if (!S.result && !cpuTurn()) {
+        btn.innerHTML = '<svg viewBox="0 0 100 100" class="ghost mark-' + S.turn.toLowerCase() + '" aria-hidden="true">' + (S.turn === 'X' ? X_SVG : O_SVG) + '</svg>';
+      }
+      btn.disabled = !!v || !!S.result || cpuTurn();
+      btn.addEventListener('click', () => play(i));
+      cellsEl.appendChild(btn);
+    });
+
+    const strike = $('strike');
+    if (S.result && S.result.line) {
+      const [a, , c] = S.result.line;
+      const pt = i => [50 + (i % 3) * 100, 50 + Math.floor(i / 3) * 100];
+      const [x1, y1] = pt(a), [x2, y2] = pt(c);
+      const dx = (x2 - x1) * 0.18, dy = (y2 - y1) * 0.18;
+      const html = '<path pathLength="1" d="M' + (x1 - dx) + ' ' + (y1 - dy) + ' L' + (x2 + dx) + ' ' + (y2 + dy) + '"/>';
+      if (strike.innerHTML !== html) strike.innerHTML = html;
+    } else strike.innerHTML = '';
+
+    const status = $('status');
+    const tag = p => '<span class="' + p.toLowerCase() + '">' + p + '</span>';
+    if (!S.result) {
+      if (S.mode === 'two') status.innerHTML = tag(S.turn) + ' to move';
+      else status.innerHTML = S.turn === 'X' ? 'Your move (' + tag('X') + ')' : 'CPU is thinking…';
+    } else if (S.result.p === 'D') {
+      status.textContent = "Cat's game. Nobody wins.";
+    } else if (S.mode === 'two') {
+      status.innerHTML = tag(S.result.p) + ' wins!';
+    } else {
+      status.innerHTML = S.result.p === 'X' ? 'You beat the CPU!' : 'The ' + tag('O') + ' CPU wins.';
+    }
+
+    $('tX').innerHTML = tallySvg(S.score.X);
+    $('tO').innerHTML = tallySvg(S.score.O);
+    $('tD').innerHTML = tallySvg(S.score.D);
+    $('nX').textContent = S.score.X;
+    $('nO').textContent = S.score.O;
+    $('nD').textContent = S.score.D;
+    document.querySelector('.tally.x .label').textContent = names.X + ' wins';
+    document.querySelector('.tally.o .label').textContent = names.O + ' wins';
+
+    document.querySelectorAll('.modes button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === S.mode)));
+  }
+
+  document.querySelectorAll('.modes button').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.mode === S.mode) return;
+    clearTimeout(cpuTimer);
+    S = fresh(null);
+    S.mode = b.dataset.mode;
+    render(false);
+  }));
+  $('newRound').addEventListener('click', () => {
+    clearTimeout(cpuTimer);
+    S = fresh(S);
+    render(false);
+    scheduleCpu();
+  });
+  $('resetScore').addEventListener('click', () => {
+    clearTimeout(cpuTimer);
+    const mode = S.mode;
+    S = fresh(null);
+    S.mode = mode;
+    render(false);
+  });
+
+  function start(data) {
+    S = data && data.board ? data : fresh(null);
+    render(false);
+    scheduleCpu();
+  }
+  window.claude?.hot?.snapshot?.(() => S);
+  window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
+</body>
+</html>
